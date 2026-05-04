@@ -7,6 +7,13 @@ export function buildFallbackPackage(idea: string): ProductPackage {
   const rawIdea = idea?.trim() || SAMPLE_IDEA;
   return {
     rawIdea,
+    mode: "mock-fallback",
+    errors: [],
+    liveSteps: 0,
+    totalSteps: 6,
+    version: "v1",
+    workflowMode: "manual",
+    fallbackSteps: ["research", "blueprint", "claudeBuildPrompt", "brandCampaign", "visualPrompts", "evaluation"],
     research: {
       summary:
         "International students transitioning to U.S. universities face a sharp social and emotional adjustment in their first 6-12 months. Existing tools focus on logistics (housing, visas) but underserve the deeper loneliness, cultural disorientation, and mental-health gap.",

@@ -68,6 +68,63 @@ export type WorkflowStage = {
   description: string;
 };
 
+export type GenerationMode = "live" | "partial-fallback" | "mock-fallback";
+
+export type GenerationError = { step: string; error: string };
+
+export type WorkflowVersion = "v1" | "v2";
+
+export type WorkflowMode = "manual" | "langgraph";
+
+export type GraphMetadata = {
+  graphType: string;
+  description: string;
+  nodes: string[];
+  edges: [string, string][];
+  nodesRun: string[];
+};
+
+export type ImageType =
+  | "heroImage"
+  | "campaignPoster"
+  | "uiMoodboard"
+  | "architectureDiagram"
+  | "socialGraphic";
+
+export type ImageStatus =
+  | "generated"
+  | "disabled"
+  | "permission_denied"
+  | "billing_limit"
+  | "quota_exceeded"
+  | "rate_limited"
+  | "model_unavailable"
+  | "invalid_request"
+  | "timeout"
+  | "fallback"
+  | "error"
+  | "loading"
+  | "idle";
+
+export type ProviderWarning = {
+  provider: string;
+  step: string;
+  code: string;
+  message: string;
+};
+
+export type GeneratedImage = {
+  type: ImageType;
+  title: string;
+  prompt: string;
+  imageUrl?: string | null;
+  imageBase64?: string | null;
+  status: ImageStatus;
+  message?: string | null;
+  error?: string | null;
+  generatedAt?: string | null;
+};
+
 export type ProductPackage = {
   rawIdea: string;
   research: Research;
@@ -77,6 +134,16 @@ export type ProductPackage = {
   visualPrompts: VisualPrompts;
   evaluation: Evaluation;
   workflow: WorkflowStage[];
+  mode?: GenerationMode;
+  errors?: GenerationError[];
+  liveSteps?: number;
+  totalSteps?: number;
+  images?: GeneratedImage[];
+  version?: WorkflowVersion;
+  workflowMode?: WorkflowMode;
+  fallbackSteps?: string[];
+  providerWarnings?: ProviderWarning[];
+  graphMetadata?: GraphMetadata;
 };
 
 export type TabId =

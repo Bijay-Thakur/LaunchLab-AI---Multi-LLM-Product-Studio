@@ -10,6 +10,31 @@ frontend/.next/
 dist/
 build/
 
-# Environment
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/venv/
+backend/.venv/
+
+# Environment - never commit secrets
 .env
+*.env
+!.env.example
+!*/.env.example
 .env.local
+backend/.env
+backend/.env.local
+frontend/.env.local
+frontend/.env
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+.claude/
+*.log
+
+# TypeScript build cache
+frontend/tsconfig.tsbuildinfo

@@ -1,3 +1,10 @@
-Flask==3.0.3
-flask-cors==4.0.1
-python-dotenv==1.0.1
+Flask>=3.1.0,<4.0.0
+flask-cors>=5.0.0,<7.0.0
+python-dotenv>=1.0.0,<2.0.0
+google-genai>=1.0.0,<2.0.0
+openai>=2.0.0,<3.0.0
+
+# Version 2 (LangGraph orchestration). Optional at runtime: the v2 route falls
+# back to manual orchestration tagged as v2 mock-fallback if these are missing.
+langgraph>=0.2.0,<0.5.0
+langchain-core>=0.3.0,<0.4.0

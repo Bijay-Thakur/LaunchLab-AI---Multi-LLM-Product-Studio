@@ -1,6 +1,8 @@
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 
-from services.mock_ai_service import service
+from services.mock_ai_service import service as mock_service
+from services.orchestration_service import generate_package, provider_status
+from utils.provider_warnings import warnings_from_errors
 from utils.response_helpers import ok, error
 
 bp = Blueprint("launchlab", __name__, url_prefix="/api")
@@ -8,66 +10,70 @@ bp = Blueprint("launchlab", __name__, url_prefix="/api")
 
 @bp.get("/health")
 def health():
-    return ok({"status": "healthy", "service": "LaunchLab AI", "version": "0.1.0"})
+    providers = provider_status()
+    mode = "real-api-ready" if any(providers.values()) else "mock-only"
+    return jsonify(
+        {
+            "status": "ok",
+            "service": "LaunchLab AI",
+            "version": "0.2.0",
+            "mode": mode,
+            "providers": providers,
+        }
+    )
 
 
 @bp.get("/sample")
 def sample():
     try:
-        return ok(service.sample_package())
-    except Exception as exc:  # demo safety
+        pkg = mock_service.sample_package()
+        pkg.update({"mode": "mock-fallback", "errors": [], "liveSteps": 0, "totalSteps": 6})
+        return ok(pkg)
+    except Exception as exc:
         return error(f"sample_failed: {exc}", 500)
+
+
+_MAX_IDEA_LEN = 5000
 
 
 @bp.post("/generate")
 def generate():
-    try:
-        payload = request.get_json(silent=True) or {}
-        raw_idea = payload.get("rawIdea", "")
-        package = service.generate_package(raw_idea)
-        return ok(package)
-    except ValueError as exc:
-        return error(str(exc), 400)
-    except Exception as exc:
-        return error(f"generate_failed: {exc}", 500)
-
-
-def _per_section(handler):
     payload = request.get_json(silent=True) or {}
-    raw_idea = payload.get("rawIdea", "")
-    if not raw_idea.strip():
-        return error("rawIdea must not be empty", 400)
+    raw_value = payload.get("rawIdea")
+    if not isinstance(raw_value, str):
+        return jsonify({"success": False, "error": "Raw idea is required."}), 400
+    raw_idea = raw_value.strip()
+    if not raw_idea:
+        return jsonify({"success": False, "error": "Raw idea is required."}), 400
+    if len(raw_idea) > _MAX_IDEA_LEN:
+        return jsonify({
+            "success": False,
+            "error": f"Raw idea is too long (max {_MAX_IDEA_LEN} characters).",
+        }), 400
     try:
-        return ok(handler(raw_idea))
+        pkg = generate_package(raw_idea)
+        pkg["success"] = True
+        pkg["providerWarnings"] = warnings_from_errors(pkg.get("errors") or [])
+        return ok(pkg)
+    except ValueError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
     except Exception as exc:
-        return error(f"section_failed: {exc}", 500)
-
-
-@bp.post("/research")
-def research():
-    return _per_section(service.research)
-
-
-@bp.post("/blueprint")
-def blueprint():
-    return _per_section(service.blueprint)
-
-
-@bp.post("/claude-prompt")
-def claude_prompt():
-    return _per_section(service.claude_prompt)
-
-
-@bp.post("/brand")
-def brand():
-    return _per_section(service.brand_campaign)
-
-
-@bp.post("/visual-prompts")
-def visual_prompts():
-    return _per_section(service.visual_prompts)
-
-
-@bp.post("/evaluation")
-def evaluation():
-    return _per_section(service.evaluation)
+        # Last-resort mock fallback so the demo never breaks
+        try:
+            pkg = mock_service.generate_package(raw_idea)
+            errors = [{"step": "orchestrator", "error": f"{type(exc).__name__}"}]
+            pkg.update(
+                {
+                    "success": True,
+                    "mode": "mock-fallback",
+                    "errors": errors,
+                    "providerWarnings": warnings_from_errors(errors),
+                    "liveSteps": 0,
+                    "totalSteps": 6,
+                }
+            )
+            return ok(pkg)
+        except Exception:
+            return jsonify(
+                {"success": False, "error": "Generation failed and fallback unavailable."}
+            ), 500
